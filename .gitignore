@@ -18,6 +18,13 @@ ui/src/ui/__screenshots__/
 ui/playwright-report/
 ui/test-results/
 
+.claude/
+.openclaw/
+node_modules/
+.env
+dist/
+
+
 # Android build artifacts
 apps/android/.gradle/
 apps/android/app/build/

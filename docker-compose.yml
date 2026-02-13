@@ -1,46 +1,62 @@
+# ─────────────────────────────────────────────────────────────
+# OpenClaw Docker Compose — Single Source of Truth
+# ─────────────────────────────────────────────────────────────
+
+x-shared: &shared
+  image: ${OPENCLAW_IMAGE:-openclaw:local}
+  env_file:
+    - .env
+  environment:
+    HOME: /home/node
+    TERM: xterm-256color
+  volumes:
+    - ${OPENCLAW_CONFIG_DIR:-./.openclaw}:/home/node/.openclaw
+    - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:/home/node/.openclaw/workspace
+  init: true
+
 services:
+
+  # ── Gateway ────────────────────────────────────────────────
   openclaw-gateway:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}
-    environment:
-      HOME: /home/node
-      TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
-      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
-      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
-    volumes:
-      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+    <<: *shared
     ports:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
-    init: true
     restart: unless-stopped
-    command:
-      [
-        "node",
-        "dist/index.js",
-        "gateway",
-        "--bind",
-        "${OPENCLAW_GATEWAY_BIND:-lan}",
-        "--port",
-        "18789",
-      ]
+    command: [ "node", "dist/index.js", "gateway", "--allow-unconfigured", "--bind", "${OPENCLAW_GATEWAY_BIND:-lan}", "--port", "18789" ]
+    healthcheck:
+      test: [ "CMD", "node", "dist/index.js", "gateway", "health", "--timeout", "5000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
+  # ── Setup (one-shot bootstrap) ─────────────────────────────
+  openclaw-setup:
+    <<: *shared
+    restart: "no"
+    command: [ "node", "dist/index.js", "setup" ]
+    profiles: [ "setup" ]
+
+  # ── CLI (utility / ad-hoc commands) ─────────────────────────
   openclaw-cli:
-    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    <<: *shared
     environment:
       HOME: /home/node
       TERM: xterm-256color
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       BROWSER: echo
+
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_GATEWAY_URL: "ws://openclaw-gateway:18789"
+
+      N8N_API_KEY: ${N8N_API_KEY}
+      N8N_BASE_URL: ${N8N_BASE_URL}
+
       CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
       CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
       CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
-    volumes:
-      - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
-      - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+
+    profiles: [ "cli" ]
     stdin_open: true
     tty: true
-    init: true
-    entrypoint: ["node", "dist/index.js"]
+    entrypoint: [ "node", "dist/index.js" ]
