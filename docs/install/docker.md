@@ -99,6 +99,36 @@ Note: run `docker compose ...` from the repo root. If you enabled
 docker compose -f docker-compose.yml -f docker-compose.extra.yml <command>
 ```
 
+### Docker networking defaults (Windows/macOS/Linux)
+
+The Docker Compose services default to:
+
+- `OPENCLAW_GATEWAY_URL=ws://openclaw-gateway:18789`
+
+That keeps `openclaw-cli` container commands on the Compose network (instead of
+failing against `ws://127.0.0.1:18789` inside the container).
+
+If your Gateway runs on the Docker host (not in Compose), override in `.env`:
+
+```dotenv
+OPENCLAW_GATEWAY_URL=ws://host.docker.internal:18789
+```
+
+On Linux where `host.docker.internal` is not available, set the host LAN IP
+explicitly (for example `ws://192.168.1.50:18789`).
+
+### Config precedence (`.env` vs `openclaw.json`)
+
+For Docker Compose flows, use this order of precedence:
+
+1. container `environment:` values in `docker-compose.yml`
+2. values in `.env` loaded by `env_file`
+3. values in `~/.openclaw/openclaw.json`
+
+This means you should keep Docker networking/auth values in `.env` and avoid
+hardcoding a conflicting `gateway.url` in `openclaw.json` for containerized CLI
+runs.
+
 ### Control UI token + pairing (Docker)
 
 If you see “unauthorized” or “disconnected (1008): pairing required”, fetch a
@@ -109,6 +139,13 @@ docker compose run --rm openclaw-cli dashboard --no-open
 docker compose run --rm openclaw-cli devices list
 docker compose run --rm openclaw-cli devices approve <requestId>
 ```
+
+If “unauthorized” persists after approving, your browser may still have an old
+`localStorage` token.
+
+- Open Control UI settings and replace the token with the latest token from
+  `docker compose run --rm openclaw-cli dashboard --no-open`.
+- Or clear site data for the Control UI origin and reconnect.
 
 More detail: [Dashboard](/web/dashboard), [Devices](/cli/devices).
 

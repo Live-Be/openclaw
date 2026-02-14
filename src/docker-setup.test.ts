@@ -105,6 +105,7 @@ describe("docker-setup.sh", () => {
     expect(envFile).toContain("OPENCLAW_DOCKER_APT_PACKAGES=");
     expect(envFile).toContain("OPENCLAW_EXTRA_MOUNTS=");
     expect(envFile).toContain("OPENCLAW_HOME_VOLUME=");
+    expect(envFile).toContain("OPENCLAW_GATEWAY_URL=ws://openclaw-gateway:18789");
   });
 
   it("supports a home volume when extra mounts are empty", async () => {
@@ -188,5 +189,8 @@ describe("docker-setup.sh", () => {
     const compose = await readFile(join(repoRoot, "docker-compose.yml"), "utf8");
     expect(compose).not.toContain("gateway-daemon");
     expect(compose).toContain('"gateway"');
+    expect(compose).toContain(
+      "OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-ws://openclaw-gateway:18789}",
+    );
   });
 });

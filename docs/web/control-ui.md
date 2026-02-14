@@ -59,6 +59,9 @@ you revoke it with `openclaw devices revoke --device <id> --role <role>`. See
 - Remote connections (LAN, Tailnet, etc.) require explicit approval.
 - Each browser profile generates a unique device ID, so switching browsers or
   clearing browser data will require re-pairing.
+- If approval succeeded but you still see `unauthorized`, refresh the stored token
+  in Settings (or clear site localStorage) so the browser stops sending a stale
+  token.
 
 ## What it can do (today)
 
