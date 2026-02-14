@@ -9,13 +9,14 @@ x-shared: &shared
   environment:
     HOME: /home/node
     TERM: xterm-256color
+    # Container-aware default so CLI commands do not target loopback.
+    OPENCLAW_GATEWAY_URL: ${OPENCLAW_GATEWAY_URL:-ws://openclaw-gateway:18789}
   volumes:
     - ${OPENCLAW_CONFIG_DIR:-./.openclaw}:/home/node/.openclaw
     - ${OPENCLAW_WORKSPACE_DIR:-./.openclaw/workspace}:/home/node/.openclaw/workspace
   init: true
 
 services:
-
   # ── Gateway ────────────────────────────────────────────────
   openclaw-gateway:
     <<: *shared
@@ -23,9 +24,19 @@ services:
       - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
       - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
     restart: unless-stopped
-    command: [ "node", "dist/index.js", "gateway", "--allow-unconfigured", "--bind", "${OPENCLAW_GATEWAY_BIND:-lan}", "--port", "18789" ]
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--allow-unconfigured",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "18789",
+      ]
     healthcheck:
-      test: [ "CMD", "node", "dist/index.js", "gateway", "health", "--timeout", "5000" ]
+      test: ["CMD", "node", "dist/index.js", "gateway", "health", "--timeout", "5000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -35,8 +46,8 @@ services:
   openclaw-setup:
     <<: *shared
     restart: "no"
-    command: [ "node", "dist/index.js", "setup" ]
-    profiles: [ "setup" ]
+    command: ["node", "dist/index.js", "setup"]
+    profiles: ["setup"]
 
   # ── CLI (utility / ad-hoc commands) ─────────────────────────
   openclaw-cli:
@@ -47,7 +58,6 @@ services:
       BROWSER: echo
 
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      OPENCLAW_GATEWAY_URL: "ws://openclaw-gateway:18789"
 
       N8N_API_KEY: ${N8N_API_KEY}
       N8N_BASE_URL: ${N8N_BASE_URL}
@@ -56,7 +66,7 @@ services:
       CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
       CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
 
-    profiles: [ "cli" ]
+    profiles: ["cli"]
     stdin_open: true
     tty: true
-    entrypoint: [ "node", "dist/index.js" ]
+    entrypoint: ["node", "dist/index.js"]
